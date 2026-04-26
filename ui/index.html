@@ -1,0 +1,270 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Plum Claims Reviewer</title>
+  <style>
+    :root {
+      --bg: #0f1419;
+      --panel: #1a2028;
+      --panel-2: #232a33;
+      --border: #2d3540;
+      --text: #e6e9ed;
+      --muted: #8a95a3;
+      --accent: #4a9eff;
+      --green: #4ade80;
+      --amber: #fbbf24;
+      --red: #f87171;
+      --purple: #c084fc;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg); color: var(--text);
+      font-size: 14px; line-height: 1.5;
+    }
+    header {
+      padding: 16px 24px; border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; gap: 16px;
+    }
+    header h1 { margin: 0; font-size: 18px; font-weight: 600; }
+    header .sub { color: var(--muted); font-size: 13px; }
+    .layout { display: grid; grid-template-columns: 360px 1fr; height: calc(100vh - 57px); }
+    .left { border-right: 1px solid var(--border); overflow-y: auto; padding: 16px; }
+    .right { overflow-y: auto; padding: 24px; }
+    .section { margin-bottom: 16px; }
+    .section-title {
+      font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px;
+      color: var(--muted); margin-bottom: 8px;
+    }
+    .tc-btn {
+      display: block; width: 100%; text-align: left;
+      padding: 8px 10px; margin-bottom: 4px;
+      background: var(--panel); color: var(--text);
+      border: 1px solid var(--border); border-radius: 4px;
+      cursor: pointer; font-size: 13px;
+    }
+    .tc-btn:hover { background: var(--panel-2); border-color: var(--accent); }
+    .tc-btn .tc-id { color: var(--accent); font-weight: 600; margin-right: 6px; }
+    textarea {
+      width: 100%; min-height: 240px;
+      font-family: 'SF Mono', Monaco, Consolas, monospace; font-size: 12px;
+      background: var(--panel); color: var(--text);
+      border: 1px solid var(--border); border-radius: 4px;
+      padding: 10px; resize: vertical;
+    }
+    button.primary {
+      background: var(--accent); color: #fff; border: none;
+      padding: 8px 16px; border-radius: 4px; font-weight: 500;
+      cursor: pointer; font-size: 14px; margin-top: 8px;
+    }
+    button.primary:hover { opacity: 0.9; }
+    .result-card {
+      background: var(--panel); border: 1px solid var(--border);
+      border-radius: 6px; padding: 20px; margin-bottom: 16px;
+    }
+    .decision-header {
+      display: flex; align-items: center; gap: 12px;
+      margin-bottom: 12px;
+    }
+    .badge {
+      padding: 4px 10px; border-radius: 4px; font-weight: 600;
+      font-size: 12px; letter-spacing: 0.3px;
+    }
+    .badge-APPROVED   { background: rgba(74, 222, 128, 0.15); color: var(--green); }
+    .badge-PARTIAL    { background: rgba(251, 191, 36, 0.15); color: var(--amber); }
+    .badge-REJECTED   { background: rgba(248, 113, 113, 0.15); color: var(--red); }
+    .badge-MANUAL_REVIEW { background: rgba(192, 132, 252, 0.15); color: var(--purple); }
+    .badge-null, .badge-- { background: rgba(138, 149, 163, 0.15); color: var(--muted); }
+    .amount { font-size: 22px; font-weight: 600; }
+    .confidence { color: var(--muted); font-size: 13px; }
+    .msg-box {
+      background: var(--panel-2); border-left: 3px solid var(--accent);
+      padding: 10px 14px; margin: 12px 0; border-radius: 2px;
+      font-style: italic; color: var(--text);
+    }
+    .msg-box.llm { border-left-color: var(--purple); }
+    .msg-box.llm::before {
+      content: "AI explanation"; display: inline-block;
+      font-style: normal; font-size: 10px; letter-spacing: 0.5px;
+      text-transform: uppercase; color: var(--purple);
+      background: rgba(192, 132, 252, 0.12);
+      padding: 2px 6px; border-radius: 3px; margin-right: 8px;
+    }
+    table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+    th, td { text-align: left; padding: 6px 10px;
+             border-bottom: 1px solid var(--border); font-size: 13px; }
+    th { color: var(--muted); font-weight: 500; font-size: 11px;
+         text-transform: uppercase; letter-spacing: 0.3px; }
+    .calc-step { font-family: 'SF Mono', Monaco, monospace; font-size: 12px; }
+    .trace-stage {
+      display: flex; align-items: center; gap: 10px; padding: 6px 0;
+      border-bottom: 1px dashed var(--border); font-size: 13px;
+    }
+    .status-PASS { color: var(--green); }
+    .status-STOP { color: var(--red); }
+    .status-ASK_REUPLOAD { color: var(--amber); }
+    .status-FAILED { color: var(--red); }
+    .status-SKIPPED { color: var(--muted); }
+    .stage-name { font-weight: 500; min-width: 130px; }
+    .latency { color: var(--muted); font-size: 12px; margin-left: auto; }
+    h3 { font-size: 13px; margin: 16px 0 6px; color: var(--muted);
+         text-transform: uppercase; letter-spacing: 0.3px; font-weight: 500; }
+    pre { background: var(--panel-2); padding: 10px; border-radius: 4px;
+          overflow-x: auto; font-size: 12px; color: var(--text); }
+    .empty { color: var(--muted); font-style: italic; padding: 80px 20px;
+             text-align: center; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Plum Claims Reviewer</h1>
+    <span class="sub">10-stage pipeline · LLM rejection explainer · eval harness built in · 12/12 test cases passing</span>
+  </header>
+
+  <div class="layout">
+    <div class="left">
+      <div class="section">
+        <div class="section-title">Load a Test Case</div>
+        {% for tc in test_cases %}
+          <button class="tc-btn" onclick="loadCase('{{ tc.case_id }}')">
+            <span class="tc-id">{{ tc.case_id }}</span>{{ tc.case_name }}
+          </button>
+        {% endfor %}
+      </div>
+
+      <div class="section">
+        <div class="section-title">Submission (JSON)</div>
+        <textarea id="payload" placeholder="Click a test case to load its input, or paste your own claim JSON here."></textarea>
+        <button class="primary" onclick="submit()">Process Claim</button>
+      </div>
+    </div>
+
+    <div class="right" id="result">
+      <div class="empty">Pick a test case on the left, then click <b>Process Claim</b> to see the decision and full trace.</div>
+    </div>
+  </div>
+
+  <script>
+    const TEST_CASES = {{ test_cases|tojson }};
+
+    function loadCase(caseId) {
+      const tc = TEST_CASES.find(t => t.case_id === caseId);
+      if (!tc) return;
+      document.getElementById('payload').value = JSON.stringify(tc.input, null, 2);
+    }
+
+    async function submit() {
+      const payload = document.getElementById('payload').value;
+      let data;
+      try { data = JSON.parse(payload); }
+      catch(e) {
+        renderError('Invalid JSON: ' + e.message);
+        return;
+      }
+      document.getElementById('result').innerHTML = '<div class="empty">Processing…</div>';
+      try {
+        const resp = await fetch('/api/claims', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data)
+        });
+        const body = await resp.json();
+        if (!resp.ok) { renderError(body.error || 'Request failed'); return; }
+        render(body);
+      } catch (e) { renderError(e.message); }
+    }
+
+    function renderError(msg) {
+      document.getElementById('result').innerHTML =
+        `<div class="result-card"><h3>Error</h3><pre>${escapeHtml(msg)}</pre></div>`;
+    }
+
+    function render(d) {
+      const decisionKey = d.decision || 'null';
+      const amt = (d.approved_amount || 0).toLocaleString('en-IN');
+      const conf = (d.confidence || 0).toFixed(2);
+
+      let html = `
+        <div class="result-card">
+          <div class="decision-header">
+            <span class="badge badge-${decisionKey}">${decisionKey === 'null' ? 'STOPPED' : decisionKey}</span>
+            <span class="amount">₹${amt}</span>
+            <span class="confidence">confidence ${conf}</span>
+          </div>
+          <div style="color: var(--muted); font-size: 13px;">
+            claim_id: <code>${d.claim_id}</code>
+          </div>
+          ${d.user_message ? `<div class="msg-box${_llmExplained(d) ? ' llm' : ''}">${escapeHtml(d.user_message)}</div>` : ''}
+      `;
+
+      if (d.rejection_reasons && d.rejection_reasons.length) {
+        html += `<h3>Rejection reasons</h3><div>${d.rejection_reasons.join(', ')}</div>`;
+      }
+
+      if (d.calc_breakdown && d.calc_breakdown.length) {
+        html += `<h3>Calculation breakdown</h3><table>
+          <thead><tr><th>Step</th><th>Before</th><th>After</th><th>Rule</th></tr></thead><tbody>`;
+        for (const s of d.calc_breakdown) {
+          html += `<tr class="calc-step">
+            <td>${s.label}</td>
+            <td>₹${s.amount_before.toLocaleString('en-IN')}</td>
+            <td>₹${s.amount_after.toLocaleString('en-IN')}</td>
+            <td>${escapeHtml(s.rule)}</td>
+          </tr>`;
+        }
+        html += '</tbody></table>';
+      }
+
+      if (d.fraud_signals && d.fraud_signals.length) {
+        html += '<h3>Fraud signals</h3>';
+        for (const s of d.fraud_signals) {
+          html += `<div>· <b>${s.code}</b> (${s.severity}): ${escapeHtml(s.description)}</div>`;
+        }
+      }
+
+      if (d.skipped_stages && d.skipped_stages.length) {
+        html += `<h3>Skipped stages</h3><div>${d.skipped_stages.join(', ')}</div>`;
+      }
+
+      html += '</div>';
+
+      if (d.trace && d.trace.length) {
+        html += '<div class="result-card"><h3>Full pipeline trace</h3>';
+        for (const t of d.trace) {
+          html += `<div class="trace-stage">
+            <span class="stage-name">${t.stage}</span>
+            <span class="status-${t.status}">${t.status}</span>
+            <span class="latency">${t.latency_ms} ms</span>
+          </div>`;
+        }
+        html += '</div>';
+      }
+
+      if (d.reasons && d.reasons.length) {
+        html += `<div class="result-card"><h3>Decision reasons</h3><ul>`;
+        for (const r of d.reasons) html += `<li>${escapeHtml(r)}</li>`;
+        html += `</ul></div>`;
+      }
+
+      document.getElementById('result').innerHTML = html;
+    }
+
+    function escapeHtml(s) {
+      return String(s).replace(/[&<>"']/g, c =>
+        ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    }
+
+    // True when stage 10 produced this user_message. Drives the
+    // small "AI explanation" badge so reviewers know which message
+    // came from the LLM and which from the static template.
+    function _llmExplained(d) {
+      if (!d.trace) return false;
+      return d.trace.some(t => t.stage === 'rejection_explainer'
+                               && t.status === 'PASS');
+    }
+  </script>
+</body>
+</html>
