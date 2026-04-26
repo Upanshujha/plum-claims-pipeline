@@ -1,0 +1,11 @@
+Flask>=3.0,<4.0
+Jinja2>=3.1,<4.0
+
+# Rejection Explainer (stage 10) — Groq SDK, OpenAI-compatible
+# client used for the rejection-only LLM call. python-dotenv loads
+# the GROQ_API_KEY from a local .env when running the Flask app.
+groq>=0.11.0,<1.0
+python-dotenv>=1.0,<2.0
+
+# Test runner (optional — tests can also be run with `python -m unittest discover`)
+pytest>=7.0,<9.0
